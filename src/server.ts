@@ -1,40 +1,35 @@
-import dotenv from "dotenv";
-import express, { Request, Response } from "express";
-import cors from "cors";
-import admin from "firebase-admin";
-import authRoutes from "./routes/auth";
+import "reflect-metadata"
+import "dotenv/config"
+import express from "express"
+import { initializeDatabase } from "@/infrastructure/database"
+import authRoutes from "@/routes/authRoutes"
 
-// ─── Load Environment Variables ─────────────────────────────────────────
-dotenv.config();
+const app = express()
 
-// ─── Firebase Admin Init ───────────────────────────────────────────────
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL,
-  });
-}
+app.use(express.json())
 
-// ─── Express App ───────────────────────────────────────────────────────
-const app = express();
-app.use(cors());
-app.use(express.json());
+app.use("/api/auth", authRoutes)
 
-// Routes
-app.use("/api/auth", authRoutes);
+const PORT = process.env.PORT || 3000
 
-// Health check route
-app.get("/", (req: Request, res: Response) => {
-  res.json({ status: "ok", message: "Backend is running" });
-});
+const startServer = async () => {
 
-// ─── Start Server ──────────────────────────────────────────────────────
-const PORT: number = parseInt(process.env.PORT || "4000", 10);
+const dbConnected = await initializeDatabase()
+
+if (dbConnected) {
+
 
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-});
+console.log(`🚀 Server running on port ${PORT}`)
+})
+
+
+} else {
+
+console.log("⚠️ Server not started due to DB connection failure")
+
+
+}
+}
+
+startServer()
